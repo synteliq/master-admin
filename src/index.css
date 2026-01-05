@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --brand-primary: #cf2e2e;
+    /* Default Red */
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+
+  body {
+    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-lg border border-white/20 dark:border-gray-800/50;
+  }
+
+  /* Brand Theme Utilities */
+  .bg-brand {
+    background-color: var(--brand-primary);
+  }
+
+  .bg-brand-light {
+    background-color: var(--brand-primary);
+    opacity: 0.1;
+  }
+
+  .text-brand {
+    color: var(--brand-primary);
+  }
+
+  .border-brand {
+    border-color: var(--brand-primary);
+  }
+
+  .focus-ring-brand:focus-visible {
+    --tw-ring-color: var(--brand-primary);
+    --tw-ring-opacity: 0.5;
+  }
+}

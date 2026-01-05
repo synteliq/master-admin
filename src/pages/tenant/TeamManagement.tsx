@@ -233,12 +233,31 @@ export const TeamManagement: React.FC = () => {
 
                     <div>
                         <label className="block text-sm font-medium mb-1">Model Name</label>
-                        <Input
-                            value={model}
-                            onChange={e => setModel(e.target.value)}
-                            placeholder={provider === 'openai' ? 'gpt-4-turbo' : provider === 'anthropic' ? 'claude-3-opus' : 'gemini-1.5-pro'}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Specify the exact model identifier for this team.</p>
+                        {provider === 'gemini' ? (
+                            <div className="space-y-2">
+                                <select
+                                    value={model}
+                                    onChange={e => setModel(e.target.value)}
+                                    className="w-full h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                                >
+                                    <option value="" disabled>Select a Model</option>
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash (NEW)</option>
+                                    <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Recommended)</option>
+                                    <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                                    <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                                </select>
+                                <p className="text-xs text-gray-500">Select a supported Gemini model.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Input
+                                    value={model}
+                                    onChange={e => setModel(e.target.value)}
+                                    placeholder={provider === 'openai' ? 'gpt-4-turbo' : 'claude-3-opus'}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Specify the exact model identifier.</p>
+                            </>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-2">
@@ -247,14 +266,14 @@ export const TeamManagement: React.FC = () => {
                             <div className="flex items-center gap-2">
                                 {styles && <span className="text-xs text-green-600 flex items-center gap-1">✓ Styles loaded</span>}
                                 <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => fileInputRef.current?.click()}>
-                                    <Upload size={12} className="mr-1" /> Upload CSS/Text
+                                    <Upload size={12} className="mr-1" /> Upload Components/Styles
                                 </Button>
                             </div>
                             <input
                                 type="file"
                                 ref={fileInputRef}
                                 className="hidden"
-                                accept=".css,.txt,.json"
+                                accept=".css,.txt,.json,.tsx,.jsx,.ts,.js,.md"
                                 onChange={handleFileUpload}
                             />
                         </div>

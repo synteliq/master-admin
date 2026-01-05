@@ -109,6 +109,11 @@ def login_sso():
             'type': 'tenant',
             'token': f"mock_tenant_{tenant['id']}", 
             'user': {'id': tenant['id'], 'name': tenant['name']},
+            'config': {
+                'apiProvider': tenant.get('provider', 'gemini'),
+                'apiKey': tenant.get('llm_api_key'), 
+                'apiModelId': tenant.get('model', 'gemini-2.0-flash-001')
+            },
             'styles': tenant.get('settings', {})
         })
 
@@ -170,10 +175,14 @@ def create_tenant():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute("""
-        INSERT INTO tenants (id, name, status, created_at, api_key, settings)
-        VALUES (%s, %s, 'active', %s, %s, '{}')
+        INSERT INTO tenants (id, name, status, created_at, api_key, provider, model, llm_api_key, settings)
+        VALUES (%s, %s, 'active', %s, %s, %s, %s, %s, '{}')
         RETURNING *
-    """, (new_id, name, created_at, new_api_key))
+    """, (new_id, name, created_at, new_api_key, 
+          request.json.get('provider', 'gemini'),
+          request.json.get('model', 'gemini-2.0-flash-001'),
+          request.json.get('apiKey')
+    ))
     new_tenant = cur.fetchone()
     conn.commit()
     cur.close()
@@ -184,6 +193,53 @@ def create_tenant():
     new_tenant['apiKey'] = new_tenant.pop('api_key')
     
     return jsonify(new_tenant)
+
+@app.route('/tenants/<id>', methods=['PATCH'])
+def update_tenant(id):
+    body = request.json
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    fields = []
+    values = []
+    
+    if 'name' in body:
+        fields.append("name = %s")
+        values.append(body['name'])
+    if 'status' in body:
+        fields.append("status = %s")
+        values.append(body['status'])
+    if 'provider' in body:
+        fields.append("provider = %s")
+        values.append(body['provider'])
+    if 'model' in body:
+        fields.append("model = %s")
+        values.append(body['model'])
+    if 'apiKey' in body:
+        fields.append("llm_api_key = %s")
+        values.append(body['apiKey'])
+    if 'settings' in body:
+        fields.append("settings = %s")
+        values.append(json.dumps(body['settings']))
+        
+    if not fields:
+        cur.close()
+        conn.close()
+        return jsonify({'error': 'No fields to update'}), 400
+        
+    values.append(id)
+    cur.execute(f"UPDATE tenants SET {', '.join(fields)} WHERE id = %s RETURNING *", tuple(values))
+    tenant = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    if not tenant:
+        return jsonify({'error': 'Not found'}), 404
+    
+    tenant['createdAt'] = tenant.pop('created_at').isoformat()
+    tenant['apiKey'] = tenant.pop('api_key')
+    return jsonify(tenant)
 
 @app.route('/tenants/<id>/status', methods=['PATCH'])
 def update_tenant_status(id):

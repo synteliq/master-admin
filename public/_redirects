@@ -1,5 +1,5 @@
 # Proxy API requests to the HTTP backend (Port 80)
-/api/*  http://34.57.66.57/:splat  200
+/api/*  http://35.239.246.146:5001/:splat  200
 
 # Handle SPA routing
 /*      /index.html   200

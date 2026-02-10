@@ -25,6 +25,13 @@ export const TeamManagement: React.FC = () => {
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Members Modal
+    const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+    const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+    const [members, setMembers] = useState<any[]>([]);
+    const [newMemberEmail, setNewMemberEmail] = useState('');
+    const [membersLoading, setMembersLoading] = useState(false);
+
     const loadTeams = async () => {
         if (!user?.id) return;
         setLoading(true);
@@ -114,6 +121,31 @@ export const TeamManagement: React.FC = () => {
         reader.readAsText(file);
     };
 
+    const openMembersModal = async (teamId: string) => {
+        setSelectedTeamId(teamId);
+        setIsMembersModalOpen(true);
+        setMembersLoading(true);
+        try {
+            const data = await MockService.getTeamMembers(user!.id, teamId);
+            setMembers(data);
+        } catch (e) {
+            console.error("Failed to load members", e);
+        } finally {
+            setMembersLoading(false);
+        }
+    };
+
+    const handleAddMember = async () => {
+        if (!newMemberEmail || !selectedTeamId) return;
+        try {
+            const newMember = await MockService.addTeamMember(user!.id, selectedTeamId, newMemberEmail);
+            setMembers([newMember, ...members]);
+            setNewMemberEmail('');
+        } catch (e: any) {
+            alert(e.message || 'Failed to add member');
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -180,6 +212,9 @@ export const TeamManagement: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <Button size="sm" variant="ghost" onClick={() => openModal(team)}>
                                             <Pencil size={14} />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" className="ml-2" onClick={() => openMembersModal(team.id)}>
+                                            <span className="text-xs">Members</span>
                                         </Button>
                                     </td>
                                 </tr>
@@ -282,6 +317,32 @@ export const TeamManagement: React.FC = () => {
                     <div className="flex justify-end pt-4 gap-2">
                         <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
                         <Button onClick={handleSave}>{editingTeam ? 'Save Changes' : 'Create Team'}</Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isMembersModalOpen} onClose={() => setIsMembersModalOpen(false)} title="Manage Team Members">
+                <div className="space-y-4">
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder="Enter user email address"
+                            value={newMemberEmail}
+                            onChange={e => setNewMemberEmail(e.target.value)}
+                        />
+                        <Button onClick={handleAddMember}>Add</Button>
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto border rounded-md divide-y dark:border-gray-700">
+                        {membersLoading && <div className="p-4 text-center text-sm text-gray-500">Loading...</div>}
+                        {!membersLoading && members.length === 0 && (
+                            <div className="p-4 text-center text-sm text-gray-500">No members yet.</div>
+                        )}
+                        {members.map(m => (
+                            <div key={m.id} className="p-3 text-sm flex justify-between items-center">
+                                <span>{m.email}</span>
+                                <span className="text-xs text-gray-400">{new Date(m.createdAt).toLocaleDateString()}</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </Modal>

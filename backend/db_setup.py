@@ -99,6 +99,31 @@ def create_tables():
             url TEXT
         );
     """)
+
+    # Team Members table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS team_members (
+            id VARCHAR(50) PRIMARY KEY,
+            team_id VARCHAR(50) REFERENCES teams(id) ON DELETE CASCADE,
+            email VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP,
+            UNIQUE(team_id, email)
+        );
+    """)
+
+    # Token Usage table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS token_usage (
+            id VARCHAR(50) PRIMARY KEY,
+            team_id VARCHAR(50) REFERENCES teams(id) ON DELETE CASCADE,
+            email VARCHAR(255),
+            tokens_in INTEGER DEFAULT 0,
+            tokens_out INTEGER DEFAULT 0,
+            cost FLOAT DEFAULT 0.0,
+            model VARCHAR(100),
+            timestamp TIMESTAMP
+        );
+    """)
     
     conn.commit()
     cur.close()

@@ -1,6 +1,6 @@
 import { Tenant, TenantFile, Team } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5001';
+const API_URL = '/api';
 
 const getAuthHeaders = () => {
     const storedAuth = localStorage.getItem('auth_session');
@@ -135,6 +135,33 @@ export const ApiService = {
             body: JSON.stringify(data),
         });
         if (!res.ok) throw new Error('Failed to update team');
+        return res.json();
+    },
+
+    // --- Team Members ---
+    addTeamMember: async (tenantId: string, teamId: string, email: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/tenants/${tenantId}/teams/${teamId}/members`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to add member');
+        }
+        return res.json();
+    },
+
+    getTeamMembers: async (tenantId: string, teamId: string): Promise<any[]> => {
+        const res = await fetch(`${API_URL}/tenants/${tenantId}/teams/${teamId}/members`);
+        if (!res.ok) throw new Error('Failed to fetch members');
+        return res.json();
+    },
+
+    // --- Usage Stats ---
+    getTenantUsage: async (tenantId: string): Promise<{ teamUsage: any[], userUsage: any[] }> => {
+        const res = await fetch(`${API_URL}/tenants/${tenantId}/usage`);
+        if (!res.ok) throw new Error('Failed to fetch usage stats');
         return res.json();
     }
 };

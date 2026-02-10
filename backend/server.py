@@ -455,9 +455,141 @@ def update_team(id, team_id):
     updated_team['teamKey'] = updated_team.pop('team_key')
     del updated_team['tenant_id']
     
+    updated_team['teamKey'] = updated_team.pop('team_key')
+    del updated_team['tenant_id']
+    
     return jsonify(updated_team)
 
-@app.route('/tenants/<id>/files', methods=['POST'])
+# --- Team Members ---
+
+@app.route('/tenants/<id>/teams/<team_id>/members', methods=['POST'])
+def add_team_member(id, team_id):
+    email = request.json.get('email')
+    if not email:
+        return jsonify({'error': 'Email required'}), 400
+
+    new_id = generate_id('mem')
+    created_at = datetime.now()
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database error'}), 500
+        
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Check if member already exists
+    cur.execute("SELECT 1 FROM team_members WHERE team_id = %s AND email = %s", (team_id, email))
+    if cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({'error': 'Member already exists'}), 409
+        
+    cur.execute("""
+        INSERT INTO team_members (id, team_id, email, created_at)
+        VALUES (%s, %s, %s, %s)
+        RETURNING *
+    """, (new_id, team_id, email, created_at))
+    
+    new_member = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    new_member['createdAt'] = new_member.pop('created_at').isoformat()
+    return jsonify(new_member)
+
+@app.route('/tenants/<id>/teams/<team_id>/members', methods=['GET'])
+def get_team_members(id, team_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT * FROM team_members WHERE team_id = %s ORDER BY created_at DESC", (team_id,))
+    members = cur.fetchall()
+    cur.close()
+    conn.close()
+    
+    for m in members:
+        if m['created_at']:
+            m['createdAt'] = m.pop('created_at').isoformat()
+            
+    return jsonify(members)
+
+# --- Token Usage ---
+
+@app.route('/api/usage', methods=['POST'])
+def record_usage():
+    body = request.json
+    team_id = body.get('teamId')
+    email = body.get('email')
+    tokens_in = body.get('tokensIn', 0)
+    tokens_out = body.get('tokensOut', 0)
+    cost = body.get('cost', 0.0)
+    model = body.get('model')
+    
+    if not team_id:
+        return jsonify({'error': 'Team ID required'}), 400
+        
+    new_id = generate_id('usage')
+    timestamp = datetime.now()
+    
+    conn = get_db_connection()
+    if not conn:
+        return jsonify({'error': 'Database error'}), 500
+        
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO token_usage (id, team_id, email, tokens_in, tokens_out, cost, model, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (new_id, team_id, email, tokens_in, tokens_out, cost, model, timestamp))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    
+    return jsonify({'success': True})
+
+@app.route('/tenants/<id>/usage', methods=['GET'])
+def get_tenant_usage(id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Get usage aggregated by team
+    cur.execute("""
+        SELECT 
+            t.name as team_name,
+            t.id as team_id,
+            COALESCE(SUM(u.tokens_in), 0) as total_tokens_in,
+            COALESCE(SUM(u.tokens_out), 0) as total_tokens_out,
+            COALESCE(SUM(u.cost), 0) as total_cost
+        FROM teams t
+        LEFT JOIN token_usage u ON t.id = u.team_id
+        WHERE t.tenant_id = %s
+        GROUP BY t.id, t.name
+    """, (id,))
+    team_usage = cur.fetchall()
+    
+    # Get top users by cost
+    cur.execute("""
+        SELECT 
+            u.email,
+            t.name as team_name,
+            SUM(u.cost) as total_cost,
+            SUM(u.tokens_in + u.tokens_out) as total_tokens
+        FROM token_usage u
+        JOIN teams t ON u.team_id = t.id
+        WHERE t.tenant_id = %s AND u.email IS NOT NULL
+        GROUP BY u.email, t.name
+        ORDER BY total_cost DESC
+        LIMIT 10
+    """, (id,))
+    user_usage = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    return jsonify({
+        'teamUsage': team_usage,
+        'userUsage': user_usage
+    })
 def upload_file(id):
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400

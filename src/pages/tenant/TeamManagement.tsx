@@ -276,7 +276,8 @@ export const TeamManagement: React.FC = () => {
                                     className="w-full h-10 px-3 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
                                 >
                                     <option value="" disabled>Select a Model</option>
-                                    <option value="gemini-2.5-flash">gemini-2.5-flash (NEW)</option>
+                                    <option value="gemini-3-pro-preview">gemini-3-pro-preview (NEW)</option>
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
                                     <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp (Recommended)</option>
                                     <option value="gemini-1.5-flash">gemini-1.5-flash</option>
                                     <option value="gemini-1.5-pro">gemini-1.5-pro</option>

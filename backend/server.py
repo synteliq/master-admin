@@ -455,9 +455,6 @@ def update_team(id, team_id):
     updated_team['teamKey'] = updated_team.pop('team_key')
     del updated_team['tenant_id']
     
-    updated_team['teamKey'] = updated_team.pop('team_key')
-    del updated_team['tenant_id']
-    
     return jsonify(updated_team)
 
 # --- Team Members ---
